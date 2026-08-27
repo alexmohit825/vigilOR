@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Luxury Gradient: Deep Obsidian into Midnight Sapphire -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#030712"/>
+      <stop offset="40%" stopColor="#0b1528"/>
+      <stop offset="80%" stopColor="#082032"/>
+      <stop offset="100%" stopColor="#020817"/>
+    </linearGradient>
+
+    <!-- Refractive Glass Rim Gradient -->
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#38bdf8" stop-opacity="0.8"/>
+      <stop offset="30%" stopColor="#0ea5e9" stop-opacity="0.3"/>
+      <stop offset="70%" stopColor="#06b6d4" stop-opacity="0.1"/>
+      <stop offset="100%" stopColor="#10b981" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <!-- Shield Titanium Facet Gradient -->
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#0f2b48"/>
+      <stop offset="50%" stopColor="#08182b"/>
+      <stop offset="100%" stopColor="#040d18"/>
+    </linearGradient>
+
+    <!-- Radiant Laser Cyan to Emerald Pulse Gradient -->
+    <linearGradient id="pulseCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#38bdf8"/>
+      <stop offset="40%" stopColor="#00f2fe"/>
+      <stop offset="80%" stopColor="#10b981"/>
+      <stop offset="100%" stopColor="#059669"/>
+    </linearGradient>
+
+    <!-- 5-Star Gold/Amber Glow Gradient -->
+    <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stopColor="#fbbf24"/>
+      <stop offset="50%" stopColor="#f59e0b"/>
+      <stop offset="100%" stopColor="#d97706"/>
+    </linearGradient>
+
+    <!-- Soft Bloom Glow Filter -->
+    <filter id="bloom" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Outer Ambient Glow Filter -->
+    <filter id="ambient" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="22" result="blur2"/>
+    </filter>
+  </defs>
+
+  <!-- Base Squircle with Apple iOS 18 Glass Rim -->
+  <rect width="512" height="512" rx="116" fill="url(#bgGrad)"/>
+  <rect width="504" height="504" x="4" y="4" rx="112" fill="none" stroke="url(#rimGrad)" stroke-width="4" opacity="0.85"/>
+
+  <!-- Subtle Radial Inner Ambient Light Source -->
+  <circle cx="256" cy="180" r="160" fill="#00f2fe" opacity="0.08" filter="url(#ambient)"/>
+  <circle cx="256" cy="320" r="140" fill="#10b981" opacity="0.06" filter="url(#ambient)"/>
+
+  <!-- OUTER GUARDIAN SHIELD (Reputation Defense) -->
+  <path d="M 256,68 L 396,124 C 396,264 338,368 256,432 C 174,368 116,264 116,124 Z" 
+        fill="url(#shieldGrad)" 
+        stroke="url(#pulseCyan)" 
+        stroke-width="5" 
+        stroke-linejoin="round"
+        filter="url(#bloom)"/>
+
+  <!-- Inner Shield Bevel Depth Layer -->
+  <path d="M 256,92 L 372,138 C 372,248 322,342 256,396 C 190,342 140,248 140,138 Z" 
+        fill="#051322" 
+        stroke="#1e3a5f" 
+        stroke-width="2" 
+        opacity="0.8"/>
+
+  <!-- NEURAL SYNAPSE & SPINAL VERTEBRAE HELIX (Neurosurgery & Spine Excellence) -->
+  <g filter="url(#bloom)">
+    <!-- Central Biomechanical Spine Column Segments -->
+    <path d="M 236,170 C 248,162 264,162 276,170 L 284,188 C 272,194 240,194 228,188 Z" fill="#1e40af" stroke="#38bdf8" stroke-width="2"/>
+    <path d="M 230,205 C 246,196 266,196 282,205 L 290,224 C 274,232 238,232 222,224 Z" fill="#0f766e" stroke="#2dd4bf" stroke-width="2"/>
+    <path d="M 226,242 C 244,232 268,232 286,242 L 294,262 C 276,270 236,270 218,262 Z" fill="#047857" stroke="#34d399" stroke-width="2"/>
+    <path d="M 230,280 C 246,270 266,270 282,280 L 288,298 C 272,306 240,306 224,298 Z" fill="#1e3a8a" stroke="#60a5fa" stroke-width="2"/>
+    <path d="M 236,316 C 248,308 264,308 276,316 L 280,332 C 268,338 244,338 232,332 Z" fill="#0f766e" stroke="#2dd4bf" stroke-width="2"/>
+
+    <!-- Neural Circuit Interconnections & Dynamic Pulse Waves -->
+    <path d="M 160,256 L 205,256 L 222,210 L 244,295 L 268,220 L 286,275 L 305,256 L 352,256" 
+          fill="none" 
+          stroke="url(#pulseCyan)" 
+          stroke-width="7" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+
+    <!-- Neural Synaptic Glow Nodes -->
+    <circle cx="160" cy="256" r="6" fill="#00f2fe"/>
+    <circle cx="352" cy="256" r="6" fill="#10b981"/>
+    <circle cx="222" cy="210" r="5" fill="#38bdf8"/>
+    <circle cx="244" cy="295" r="5" fill="#34d399"/>
+    <circle cx="268" cy="220" r="5" fill="#00f2fe"/>
+    <circle cx="286" cy="275" r="5" fill="#10b981"/>
+  </g>
+
+  <!-- 5-STAR REPUTATION CREST (Gold Constellation on Upper Shield) -->
+  <g filter="url(#bloom)" transform="translate(0, 0)">
+    <!-- Star 1 -->
+    <polygon points="186,134 190,144 200,144 192,150 195,160 186,154 177,160 180,150 172,144 182,144" fill="url(#goldGlow)"/>
+    <!-- Star 2 -->
+    <polygon points="221,122 225,132 235,132 227,138 230,148 221,142 212,148 215,138 207,132 217,132" fill="url(#goldGlow)"/>
+    <!-- Star 3 (Center Crown Star) -->
+    <polygon points="256,114 261,126 273,126 263,134 267,146 256,138 245,146 249,134 239,126 251,126" fill="url(#goldGlow)"/>
+    <!-- Star 4 -->
+    <polygon points="291,122 295,132 305,132 297,138 300,148 291,142 282,148 285,138 277,132 287,132" fill="url(#goldGlow)"/>
+    <!-- Star 5 -->
+    <polygon points="326,134 330,144 340,144 332,150 335,160 326,154 317,160 320,150 312,144 322,144" fill="url(#goldGlow)"/>
+  </g>
+
+  <!-- Subtle Core Light Spark -->
+  <circle cx="256" cy="256" r="4" fill="#ffffff" filter="url(#bloom)"/>
+</svg>

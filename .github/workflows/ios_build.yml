@@ -1,0 +1,78 @@
+name: iOS Xcode & Swift Cloud Builder
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allows manual 1-click trigger from GitHub web UI
+
+jobs:
+  build-ios-swift:
+    name: 🍏 Compile Native iOS Swift Extension (macOS Cloud)
+    runs-on: macos-14 # Apple Silicon M-series macOS runner with latest Xcode
+
+    steps:
+      - name: 📥 Check out repository code
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Show Xcode & Swift Environment
+        run: |
+          xcodebuild -version
+          swift --version
+          xcrun --sdk iphonesimulator --show-sdk-path
+
+      - name: 🧪 Compile Native iOS Keyboard Swift Extension
+        run: |
+          echo "Compiling Ergos Keyboard Swift Extension for iOS 17/18/19 Simulator..."
+          SDK_PATH=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          TARGET="arm64-apple-ios17.0-simulator"
+
+          swiftc \
+            -target $TARGET \
+            -sdk $SDK_PATH \
+            -parse-as-library \
+            -O \
+            -enable-bare-slash-regex \
+            xcode_native_extension/*.swift \
+            -emit-library \
+            -o ErgosKeyboardExtension.dylib
+
+          echo "✅ Swift Compilation Succeeded with ZERO errors!"
+          ls -lh ErgosKeyboardExtension.dylib
+
+      - name: 📦 Upload iOS Swift Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ErgosKeyboardExtension-macOS-Build
+          path: |
+            ErgosKeyboardExtension.dylib
+            xcode_native_extension/
+          retention-days: 14
+
+  build-web-simulator:
+    name: 🌐 Build React & TypeScript Simulator
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Check out repository code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: ⚡ Build Simulator Web Bundle
+        run: npm run build
+
+      - name: 📦 Upload Web Simulator Distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: ErgosSimulator-Web-Build
+          path: dist/
+          retention-days: 14
