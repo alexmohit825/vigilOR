@@ -1,27 +1,28 @@
 {
   "name": "VigilOR Sentinel",
   "short_name": "VigilOR",
-  "description": "Autonomous OR Schedule Sentinel & Clinical Availability Relay for Dr. A. Alex Mohit",
-  "start_url": "/",
+  "description": "Autonomous OR Schedule Sentinel & Clinical Availability Relay for A. Alex Mohit, MD, PhD, FAANS",
+  "start_url": "https://alexmohit825.github.io/vigilor/",
+  "scope": "https://alexmohit825.github.io/vigilor/",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#020617",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/apple-touch-icon.png",
+      "src": "apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/favicon-192x192.png",
+      "src": "favicon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/pwa-512x512.png",
+      "src": "pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
