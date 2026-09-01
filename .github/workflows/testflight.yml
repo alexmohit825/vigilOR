@@ -20,15 +20,15 @@ concurrency:
 jobs:
   build-and-deploy:
     name: 📲 Build Native Swift App & Deliver to TestFlight
-    runs-on: macos-15
+    runs-on: macos-14
 
     steps:
       - name: 📥 Check out repository code
         uses: actions/checkout@v4
 
-      - name: 🛠️ Select Xcode 16 / iOS 18 SDK
+      - name: 🛠️ Select Xcode 15.4 SDK
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
           xcodebuild -version
 
       - name: 🔑 Configure App Store Connect API Key
@@ -49,6 +49,7 @@ jobs:
             -project VigilOR.xcodeproj \
             -scheme VigilOR \
             -configuration Release \
+            -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -archivePath build/VigilOR.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
