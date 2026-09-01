@@ -7,19 +7,25 @@
     <key>CFBundleDisplayName</key>
     <string>VigilOR</string>
     <key>CFBundleExecutable</key>
-    <string>$(EXECUTABLE_NAME)</string>
+    <string>VigilOR</string>
     <key>CFBundleIdentifier</key>
     <string>com.AlexMohit.VigilOR</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>$(PRODUCT_NAME)</string>
+    <string>VigilOR</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>CFBundleSupportedPlatforms</key>
+    <array>
+        <string>iPhoneOS</string>
+    </array>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleIcons</key>
     <dict>
         <key>CFBundlePrimaryIcon</key>
@@ -27,12 +33,33 @@
             <key>CFBundleIconFiles</key>
             <array>
                 <string>AppIcon60x60</string>
-                <string>AppIcon1024</string>
             </array>
             <key>CFBundleIconName</key>
             <string>AppIcon</string>
         </dict>
     </dict>
+    <key>DTCompiler</key>
+    <string>com.apple.compilers.llvm.clang.1_0</string>
+    <key>DTPlatformBuild</key>
+    <string>22A3362</string>
+    <key>DTPlatformName</key>
+    <string>iphoneos</string>
+    <key>DTPlatformVersion</key>
+    <string>18.0</string>
+    <key>DTSDKBuild</key>
+    <string>22A3362</string>
+    <key>DTSDKName</key>
+    <string>iphoneos18.0</string>
+    <key>DTXcode</key>
+    <string>1600</string>
+    <key>DTXcodeBuild</key>
+    <string>16A242d</string>
+    <key>MinimumOSVersion</key>
+    <string>17.0</string>
+    <key>UIDeviceFamily</key>
+    <array>
+        <integer>1</integer>
+    </array>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSRequiresIPhoneOS</key>
