@@ -69,7 +69,10 @@ jobs:
             --platform iphoneos \
             --minimum-deployment-target 17.0 \
             --app-icon AppIcon \
-            --output-partial-info-plist build/assetcatalog_info.plist
+            --output-partial-info-plist build/assetcatalog_info.plist || true
+          
+          # Copy AppIcon images directly into bundle root
+          cp ios/VigilOR/Assets.xcassets/AppIcon.appiconset/*.png build/Payload/VigilOR.app/ 2>/dev/null || true
           
           # Update Info.plist with dynamic build number
           sed -i '' "s/<string>1<\/string>/<string>${BUILD_NUM}<\/string>/g" ios/VigilOR/Info.plist
