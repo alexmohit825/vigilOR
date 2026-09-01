@@ -32,11 +32,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🛠️ Select Xcode SDK
+      - name: 🛠️ Select Latest Xcode SDK
         run: |
-          echo "Available Xcode installations:"
-          ls -d /Applications/Xcode*.app
-          sudo xcode-select -s /Applications/Xcode.app || sudo xcode-select -s /Applications/Xcode_16.app
+          echo "Selecting latest Xcode installation..."
+          sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app
           xcodebuild -version
           swift --version
 
