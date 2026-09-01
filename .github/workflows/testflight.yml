@@ -41,8 +41,7 @@ jobs:
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
           chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
-          python3 -m pip install pyjwt requests cryptography
-          echo "✅ Apple ASC API key and tools configured."
+          echo "✅ Apple ASC API key configured in secure runner keychain."
 
       - name: 📦 Compile Native VigilOR Swift App & Assets
         run: |
@@ -76,8 +75,8 @@ jobs:
           sed -i '' "s/<string>1<\/string>/<string>${BUILD_NUM}<\/string>/g" ios/VigilOR/Info.plist
           cp ios/VigilOR/Info.plist build/Payload/VigilOR.app/Info.plist
           
-          # Fetch and embed official Apple Distribution Provisioning Profile
-          python3 ios/fetch_provisioning_profile.py build/Payload/VigilOR.app/embedded.mobileprovision
+          # Embed official Apple Distribution Provisioning Profile
+          cp ios/embedded.mobileprovision build/Payload/VigilOR.app/embedded.mobileprovision
           
           echo "✅ VigilOR app bundle assembled successfully for arm64 iOS (Build #${BUILD_NUM})."
 
