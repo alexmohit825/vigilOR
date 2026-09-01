@@ -32,16 +32,33 @@ jobs:
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-path
 
-      - name: 🔑 Configure App Store Connect API Key
+      - name: 🔑 Configure App Store Connect API Key & Code Signing Keychain
         env:
           APP_STORE_CONNECT_KEY_ID: '38F6WA87DU'
           APP_STORE_CONNECT_ISSUER_ID: '73c7355a-beef-4d79-919d-c3d7dec7747a'
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          APPLE_DISTRIBUTION_P12: ${{ secrets.APPLE_DISTRIBUTION_P12 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
         run: |
+          # 1. Setup ASC API Key
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
           chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
-          echo "✅ Apple ASC API key configured in secure runner keychain."
+          
+          # 2. Setup Distribution Certificate Keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=temporal_pass
+          
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          
+          echo "$APPLE_DISTRIBUTION_P12" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          
+          echo "✅ Apple Distribution Certificate & API Key configured in secure runner keychain."
 
       - name: 📦 Compile Native VigilOR Swift App & Assets
         run: |
@@ -81,7 +98,11 @@ jobs:
           # Embed official Apple Distribution Provisioning Profile
           cp ios/embedded.mobileprovision build/Payload/VigilOR.app/embedded.mobileprovision
           
-          echo "✅ VigilOR app bundle assembled successfully for arm64 iOS (Build #${BUILD_NUM})."
+          # Sign application bundle with Apple Distribution Certificate
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          /usr/bin/codesign --force --sign "Apple Distribution: ABDI ALEX MOHIT (523MJL63MC)" --keychain $KEYCHAIN_PATH --entitlements ios/VigilOR/VigilOR.entitlements --timestamp build/Payload/VigilOR.app
+          
+          echo "✅ VigilOR app bundle assembled and signed successfully for arm64 iOS (Build #${BUILD_NUM})."
 
       - name: 📱 Package Application into IPA
         run: |
