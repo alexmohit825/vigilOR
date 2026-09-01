@@ -17,6 +17,9 @@ concurrency:
   group: 'testflight'
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     name: 🍏 Compile, Archive & Deliver to TestFlight
@@ -26,10 +29,14 @@ jobs:
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🛠️ Select Xcode 16 SDK
+      - name: 🛠️ Select Xcode SDK
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+          echo "Available Xcode installations:"
+          ls -d /Applications/Xcode*.app
+          sudo xcode-select -s /Applications/Xcode.app || sudo xcode-select -s /Applications/Xcode_16.app
           xcodebuild -version
           swift --version
 
@@ -61,6 +68,9 @@ jobs:
             --apiIssuer "$ASC_ISSUER_ID"
 
       - name: 🚀 Archive Release Candidate for TestFlight
+        env:
+          ASC_KEY_ID: "38F6WA87DU"
+          ASC_ISSUER_ID: "73c7355a-beef-4d79-919d-c3d7dec7747a"
         run: |
           mkdir -p build
           echo "Archiving VigilOR target for generic iOS device (Build #${{ github.run_number }})..."
@@ -72,8 +82,12 @@ jobs:
             -destination 'generic/platform=iOS' \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             MARKETING_VERSION="1.0.0" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM=523MJL63MC \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_38F6WA87DU.p8 \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
 
       - name: 📤 Export & Deliver to TestFlight via Apple Direct Upload
         env:
