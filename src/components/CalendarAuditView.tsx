@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Upload, Search, Send, CheckCircle2, AlertOctagon, Clock, ShieldCheck, FileText, Sparkles, Filter, RefreshCw, Mail, ArrowRight, UserCheck, History, AlertCircle } from 'lucide-react';
+import { Calendar, Upload, Search, Send, CheckCircle2, AlertOctagon, Clock, ShieldCheck, FileText, Sparkles, Filter, RefreshCw, Mail, ArrowRight, UserCheck, History, AlertCircle, ExternalLink, Copy, Check } from 'lucide-react';
 import { ProtectionRule, Scheduler, SurgeonProfile, NotificationRecord, CalendarEvent } from '../types/vigilor';
 import { parseIcsCalendar } from '../engine/icsParser';
 import { scanCalendarForConflicts, dispatchConflictNotice, generateSamplePreExistingCalendar, PreExistingConflictItem } from '../engine/historicalScanner';
@@ -28,6 +28,8 @@ export const CalendarAuditView: React.FC<CalendarAuditViewProps> = ({
   const [dispatchProgress, setDispatchProgress] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<'UPCOMING' | 'ALL' | 'PAST' | 'DISPATCHED'>('UPCOMING');
+  const [pasteMode, setPasteMode] = useState<boolean>(false);
+  const [pastedIcsText, setPastedIcsText] = useState<string>('');
 
   // Handle .ics file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,13 +43,32 @@ export const CalendarAuditView: React.FC<CalendarAuditViewProps> = ({
     reader.onload = (event) => {
       const content = event.target?.result as string;
       if (content) {
-        const parsedEvents = parseIcsCalendar(content, 'Apple iCalendar');
+        const parsedEvents = parseIcsCalendar(content, file.name);
         const detected = scanCalendarForConflicts(parsedEvents, rules, schedulers, profile);
         setConflictList(detected);
+        setDispatchProgress(`Successfully ingested "${file.name}": Detected ${detected.length} total Wednesday appointments (${detected.filter(c => !c.isPast).length} upcoming).`);
+        setTimeout(() => setDispatchProgress(null), 6000);
       }
       setIsScanning(false);
     };
     reader.readAsText(file);
+  };
+
+  // Handle Pasted .ics or raw text
+  const handlePastedScan = () => {
+    if (!pastedIcsText.trim()) return;
+    setIsScanning(true);
+    try {
+      const parsedEvents = parseIcsCalendar(pastedIcsText, 'Pasted iCalendar Export');
+      const detected = scanCalendarForConflicts(parsedEvents, rules, schedulers, profile);
+      setConflictList(detected);
+      setDispatchProgress(`Pasted calendar parsed: Detected ${detected.length} total Wednesday appointments (${detected.filter(c => !c.isPast).length} upcoming).`);
+      setTimeout(() => setDispatchProgress(null), 6000);
+    } catch (e: any) {
+      console.error(e);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   // Run Scan on sample pre-existing calendar
@@ -58,22 +79,25 @@ export const CalendarAuditView: React.FC<CalendarAuditViewProps> = ({
       const detected = scanCalendarForConflicts(events, rules, schedulers, profile);
       setConflictList(detected);
       setIsScanning(false);
-    }, 600);
+    }, 400);
   };
 
   // Dispatch individual conflict notice (strictly blocked if past)
   const handleDispatchSingle = async (item: PreExistingConflictItem) => {
     if (item.isPast) return;
 
-    const records = await dispatchConflictNotice(item, profile);
+    const { records, results } = await dispatchConflictNotice(item, profile);
     records.forEach(r => onRecordNotification(r));
+
+    const lastRes = results[0];
 
     setConflictList(prev => prev.map(c => {
       if (c.id === item.id) {
         return {
           ...c,
           status: 'DISPATCHED',
-          dispatchedAt: new Date().toISOString()
+          dispatchedAt: new Date().toISOString(),
+          lastDispatchResult: lastRes
         };
       }
       return c;
@@ -86,15 +110,14 @@ export const CalendarAuditView: React.FC<CalendarAuditViewProps> = ({
     if (pendingUpcoming.length === 0) return;
 
     setIsDispatchingAll(true);
-    setDispatchProgress(`Preparing batch dispatch for ${pendingUpcoming.length} upcoming appointments (past events excluded)...`);
+    setDispatchProgress(`Preparing batch dispatch for ${pendingUpcoming.length} upcoming appointments (past events strictly excluded)...`);
 
     let sentCount = 0;
     for (const item of pendingUpcoming) {
       setDispatchProgress(`Dispatching notice for ${item.eventDateFormatted} (${sentCount + 1}/${pendingUpcoming.length})...`);
-      const records = await dispatchConflictNotice(item, profile);
+      const { records, results } = await dispatchConflictNotice(item, profile);
       records.forEach(r => onRecordNotification(r));
       sentCount++;
-      // Brief pause to avoid rate limits
       await new Promise(res => setTimeout(res, 400));
     }
 
@@ -110,8 +133,8 @@ export const CalendarAuditView: React.FC<CalendarAuditViewProps> = ({
     }));
 
     setIsDispatchingAll(false);
-    setDispatchProgress(`🎉 Batch dispatch complete! Dispatched official OR blackout notices for all ${pendingUpcoming.length} upcoming appointments to Emily & Richona.`);
-    setTimeout(() => setDispatchProgress(null), 6000);
+    setDispatchProgress(`🎉 Batch dispatch complete! Dispatched official OR blackout notices for all ${pendingUpcoming.length} upcoming appointments.`);
+    setTimeout(() => setDispatchProgress(null), 8000);
   };
 
   const filtered = conflictList.filter(item => {
@@ -133,13 +156,13 @@ export const CalendarAuditView: React.FC<CalendarAuditViewProps> = ({
           <div className="space-y-2">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Historical Calendar Audit & Backfill Engine</span>
+              <span>Real Calendar Audit & Blackout Sentinel</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Pre-Existing Appointment Audit
+              Wednesday Pre-Existing Appointment Audit
             </h1>
             <p className="text-slate-400 text-sm max-w-2xl">
-              Identifies Wednesday afternoon appointments created in Apple Calendar prior to app deployment. <strong className="text-emerald-300 font-semibold">Strict Rule:</strong> Past appointments are kept for audit history only; alerts are dispatched exclusively for upcoming future dates.
+              Ingests your real Apple iCalendar export and identifies all protected Wednesday afternoon appointments. <strong className="text-emerald-300 font-semibold">Safety Rule:</strong> Past appointments are retained for audit history only; alerts are dispatched exclusively for upcoming future dates.
             </p>
           </div>
 
@@ -169,34 +192,63 @@ export const CalendarAuditView: React.FC<CalendarAuditViewProps> = ({
         {/* Left 5 Cols: File Upload & Scan Controls */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800 space-y-5 shadow-xl">
-            <h2 className="text-base font-bold text-white flex items-center space-x-2 pb-3 border-b border-slate-800">
-              <Upload className="w-4 h-4 text-emerald-400" />
-              <span>1. Ingest Apple iCalendar (.ics)</span>
-            </h2>
-
-            {/* Drag & Drop / File Input */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Import Apple Calendar Export
-              </label>
-              <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-700 hover:border-emerald-500/50 rounded-2xl cursor-pointer bg-slate-950/60 hover:bg-slate-950 transition-all text-center group">
-                <FileText className="w-8 h-8 text-slate-500 group-hover:text-emerald-400 transition-colors mb-2" />
-                <span className="text-xs font-bold text-slate-300 group-hover:text-white">
-                  {selectedFile ? `Selected: ${selectedFile}` : 'Choose or Drag .ics file'}
-                </span>
-                <span className="text-[11px] text-slate-500 mt-1">
-                  Export from Apple Calendar (File &gt; Export &gt; Export...)
-                </span>
-                <input
-                  type="file"
-                  accept=".ics,text/calendar"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h2 className="text-base font-bold text-white flex items-center space-x-2">
+                <Upload className="w-4 h-4 text-emerald-400" />
+                <span>1. Ingest Apple iCalendar (.ics)</span>
+              </h2>
+              <button
+                onClick={() => setPasteMode(!pasteMode)}
+                className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                {pasteMode ? 'Upload File' : 'Paste .ics Text'}
+              </button>
             </div>
 
-            {/* Preset Fast Scan Button */}
+            {/* Drag & Drop or Paste Mode */}
+            {pasteMode ? (
+              <div className="space-y-3">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Paste iCalendar (.ics) Content
+                </label>
+                <textarea
+                  value={pastedIcsText}
+                  onChange={(e) => setPastedIcsText(e.target.value)}
+                  placeholder="BEGIN:VCALENDAR&#10;BEGIN:VEVENT&#10;SUMMARY:Protected Block&#10;DTSTART:20260909T130000Z&#10;DTEND:20260909T170000Z&#10;END:VEVENT&#10;END:VCALENDAR"
+                  className="w-full h-32 bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  onClick={handlePastedScan}
+                  disabled={!pastedIcsText.trim() || isScanning}
+                  className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs transition-all disabled:opacity-50"
+                >
+                  Parse Pasted Calendar
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Select Real Calendar File
+                </label>
+                <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-700 hover:border-emerald-500/50 rounded-2xl cursor-pointer bg-slate-950/60 hover:bg-slate-950 transition-all text-center group">
+                  <FileText className="w-8 h-8 text-slate-500 group-hover:text-emerald-400 transition-colors mb-2" />
+                  <span className="text-xs font-bold text-slate-300 group-hover:text-white">
+                    {selectedFile ? `Selected: ${selectedFile}` : 'Choose or Drag .ics file'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 mt-1">
+                    In Apple Calendar: <strong>File &gt; Export &gt; Export...</strong>
+                  </span>
+                  <input
+                    type="file"
+                    accept=".ics,text/calendar"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            )}
+
+            {/* Quick Historical Scan */}
             <div className="pt-2 border-t border-slate-800 space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Quick Historical Scan
@@ -226,7 +278,7 @@ export const CalendarAuditView: React.FC<CalendarAuditViewProps> = ({
             <div className="bg-slate-950 rounded-xl p-4 border border-slate-850 space-y-2 text-xs">
               <div className="font-bold text-white flex items-center space-x-1.5">
                 <UserCheck className="w-4 h-4 text-emerald-400" />
-                <span>Recipients for Upcoming Alerts:</span>
+                <span>Target MultiCare Recipients:</span>
               </div>
               <ul className="space-y-1 text-[11px] text-slate-300">
                 {schedulers.map(s => (
@@ -336,8 +388,8 @@ export const CalendarAuditView: React.FC<CalendarAuditViewProps> = ({
                         </div>
                       </div>
 
-                      {/* Action / Status Button */}
-                      <div className="self-start sm:self-center">
+                      {/* Action / Status Buttons */}
+                      <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
                         {item.isPast ? (
                           <span className="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
                             <span>Past (No Alert Sent)</span>
@@ -348,13 +400,27 @@ export const CalendarAuditView: React.FC<CalendarAuditViewProps> = ({
                             <span>Dispatched</span>
                           </span>
                         ) : (
-                          <button
-                            onClick={() => handleDispatchSingle(item)}
-                            className="flex items-center space-x-1 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition-all"
-                          >
-                            <Send className="w-3 h-3" />
-                            <span>Dispatch Notice</span>
-                          </button>
+                          <>
+                            {item.mailtoUri && (
+                              <a
+                                href={item.mailtoUri}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-bold text-xs transition-all"
+                                title="Open directly in Outlook / Apple Mail"
+                              >
+                                <Mail className="w-3 h-3" />
+                                <span>Open in Mail</span>
+                              </a>
+                            )}
+                            <button
+                              onClick={() => handleDispatchSingle(item)}
+                              className="flex items-center space-x-1 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition-all"
+                            >
+                              <Send className="w-3 h-3" />
+                              <span>Dispatch API</span>
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>

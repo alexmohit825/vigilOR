@@ -1,6 +1,7 @@
 import { CalendarEvent, ProtectionRule, Scheduler, SurgeonProfile, NotificationRecord } from '../types/vigilor';
-import { evaluateEventAgainstRule, formatTime12h, getDayName } from './ruleEvaluator';
+import { evaluateEventAgainstRule, formatTime12h } from './ruleEvaluator';
 import { generateClinicalEmail } from './dispatcher';
+import { sendClinicalEmail, buildSurgeonMailtoUri, EmailDispatchResult } from '../services/emailService';
 
 export interface PreExistingConflictItem {
   id: string;
@@ -15,13 +16,13 @@ export interface PreExistingConflictItem {
   isPast: boolean;
   status: 'PENDING_DISPATCH' | 'DISPATCHED' | 'PAST_EXPIRED' | 'FAILED';
   dispatchedAt?: string;
+  mailtoUri?: string;
+  lastDispatchResult?: EmailDispatchResult;
 }
-
-const VERIFIED_FORM_TOKEN = '0613e0d5ba48c05c2834b24e4ba63654';
 
 /**
  * Scans a list of calendar events and identifies all conflicting Wednesday appointments.
- * Strictly flags whether an event is in the past vs future.
+ * Strictly separates past vs future events.
  */
 export function scanCalendarForConflicts(
   events: CalendarEvent[],
@@ -55,6 +56,15 @@ export function scanCalendarForConflicts(
         const startTimeStr = formatTime12h(`${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}`);
         const endTimeStr = formatTime12h(`${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`);
         const timeWindowFormatted = `${startTimeStr} – ${endTimeStr}`;
+        const fullWindowStr = `${eventDateFormatted} (${timeWindowFormatted})`;
+
+        const mailtoUri = buildSurgeonMailtoUri(
+          profile,
+          evaluation.targetSchedulers,
+          fullWindowStr,
+          evaluation.sanitizedSummary,
+          `conflict_${event.uid}`
+        );
 
         results.push({
           id: `audit_conflict_${event.uid}`,
@@ -67,7 +77,8 @@ export function scanCalendarForConflicts(
           targetSchedulers: evaluation.targetSchedulers,
           isPreExisting: true,
           isPast,
-          status: isPast ? 'PAST_EXPIRED' : 'PENDING_DISPATCH'
+          status: isPast ? 'PAST_EXPIRED' : 'PENDING_DISPATCH',
+          mailtoUri
         });
         break; // Match first active rule per event
       }
@@ -84,18 +95,20 @@ export function scanCalendarForConflicts(
  */
 export async function dispatchConflictNotice(
   item: PreExistingConflictItem,
-  profile: SurgeonProfile
-): Promise<NotificationRecord[]> {
+  profile: SurgeonProfile,
+  apiKey?: string
+): Promise<{ records: NotificationRecord[]; results: EmailDispatchResult[] }> {
   const now = new Date();
   const end = new Date(item.event.end);
 
   // STRICT SAFETY GUARD: Do NOT send notices for events in the past
   if (item.isPast || end.getTime() < now.getTime()) {
     console.warn(`[SAFETY FILTER] Blocked dispatch for historical/past event on ${item.eventDateFormatted}.`);
-    return [];
+    return { records: [], results: [] };
   }
 
   const records: NotificationRecord[] = [];
+  const results: EmailDispatchResult[] = [];
   const start = new Date(item.event.start);
   const fullWindowStr = `${item.eventDateFormatted} (${item.timeWindowFormatted})`;
 
@@ -111,109 +124,97 @@ export async function dispatchConflictNotice(
       recordId
     );
 
-    // Endpoint selection
-    const endpoint = scheduler.email.toLowerCase() === 'mohalex@gmail.com'
-      ? `https://formsubmit.co/ajax/${VERIFIED_FORM_TOKEN}`
-      : `https://formsubmit.co/ajax/${encodeURIComponent(scheduler.email.trim())}`;
+    const dispatchResult = await sendClinicalEmail(
+      profile,
+      scheduler,
+      fullWindowStr,
+      item.sanitizedSummary,
+      recordId,
+      apiKey
+    );
+    results.push(dispatchResult);
 
-    try {
-      await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          _subject: emailPayload.subject,
-          surgeon: `${profile.name}, ${profile.title}`,
-          specialty: profile.specialty,
-          facility: profile.primaryHospital,
-          recipient_name: scheduler.fullName,
-          protected_window: fullWindowStr,
-          block_type: item.sanitizedSummary,
-          action_required: 'Please hold OR schedule clear. Do NOT book surgical cases during this upcoming protected window.',
-          details: emailPayload.text,
-          _captcha: 'false'
-        })
-      });
+    const record: NotificationRecord = {
+      id: recordId,
+      ruleId: 'rule_pre_existing_scan',
+      ruleName: item.ruleName,
+      schedulerId: scheduler.id,
+      schedulerName: scheduler.fullName,
+      schedulerFacility: scheduler.facilityName,
+      recipientEmail: scheduler.email,
+      eventUid: item.event.uid,
+      eventSummary: item.sanitizedSummary,
+      eventStart: start.toISOString(),
+      eventEnd: end.toISOString(),
+      emailSubject: emailPayload.subject,
+      emailHtml: emailPayload.html,
+      emailText: emailPayload.text,
+      deliveryStatus: dispatchResult.success ? 'SENT' : 'FAILED',
+      sentAt: new Date().toISOString(),
+      ackStatus: 'UNACKNOWLEDGED'
+    };
 
-      const record: NotificationRecord = {
-        id: recordId,
-        ruleId: 'rule_pre_existing_scan',
-        ruleName: item.ruleName,
-        schedulerId: scheduler.id,
-        schedulerName: scheduler.fullName,
-        schedulerFacility: scheduler.facilityName,
-        recipientEmail: scheduler.email,
-        eventUid: item.event.uid,
-        eventSummary: item.sanitizedSummary,
-        eventStart: start.toISOString(),
-        eventEnd: end.toISOString(),
-        emailSubject: emailPayload.subject,
-        emailHtml: emailPayload.html,
-        emailText: emailPayload.text,
-        deliveryStatus: 'SENT',
-        sentAt: new Date().toISOString(),
-        ackStatus: 'UNACKNOWLEDGED'
-      };
-
-      records.push(record);
-    } catch (e) {
-      console.error(`Failed to dispatch pre-existing notice to ${scheduler.email}:`, e);
-    }
+    records.push(record);
   }
 
-  return records;
+  return { records, results };
 }
 
 /**
- * Generates sample pre-existing appointments representing real Wednesday afternoon blocks
- * entered into Apple Calendar prior to app deployment (includes both past and future dates).
+ * Generates an illustrative demonstration calendar with upcoming Wednesdays and past dates
  */
 export function generateSamplePreExistingCalendar(): CalendarEvent[] {
-  const now = new Date();
-  const events: CalendarEvent[] = [];
+  const today = new Date();
+  
+  // Past Wednesday (2 weeks ago)
+  const pastWed = new Date(today);
+  pastWed.setDate(today.getDate() - 14 - ((today.getDay() - 3 + 7) % 7));
+  const pastWedStart = new Date(pastWed);
+  pastWedStart.setHours(13, 0, 0, 0);
+  const pastWedEnd = new Date(pastWed);
+  pastWedEnd.setHours(16, 0, 0, 0);
 
-  // Find Wednesdays over past 4 weeks and next 8 weeks
-  const baseDate = new Date(now);
-  baseDate.setDate(now.getDate() - 28); // 4 weeks in the past
+  // Upcoming Wednesday #1 (Next week)
+  const daysUntilNextWed = (3 - today.getDay() + 7) % 7 || 7;
+  const nextWed1 = new Date(today);
+  nextWed1.setDate(today.getDate() + daysUntilNextWed);
+  const nextWed1Start = new Date(nextWed1);
+  nextWed1Start.setHours(13, 0, 0, 0);
+  const nextWed1End = new Date(nextWed1);
+  nextWed1End.setHours(16, 30, 0, 0);
 
-  const sampleTitles = [
-    'Academic Research & Spine Literature Review',
-    'Neurosurgical Department Administrative Time',
-    'Spine Fellowship Curriculum Planning',
-    'Complex Spine Case Review & Pre-Op Planning',
-    'Personal Block: Family & Administrative',
-    'Academic Writing & Grant Review',
-    'Neurosurgery Grand Rounds Prep & Research',
-    'Spine Journal Club & Clinical Analysis'
-  ];
+  // Upcoming Wednesday #2 (Following week)
+  const nextWed2 = new Date(nextWed1);
+  nextWed2.setDate(nextWed1.getDate() + 7);
+  const nextWed2Start = new Date(nextWed2);
+  nextWed2Start.setHours(14, 0, 0, 0);
+  const nextWed2End = new Date(nextWed2);
+  nextWed2End.setHours(17, 0, 0, 0);
 
-  let titleIdx = 0;
-  for (let i = 0; i < 14; i++) {
-    const current = new Date(baseDate.getTime() + i * 7 * 86400000);
-    // Find Wednesday
-    const day = current.getDay();
-    const diff = (3 - day + 7) % 7;
-    current.setDate(current.getDate() + diff);
-
-    const start = new Date(current);
-    start.setHours(12, 0, 0, 0);
-
-    const end = new Date(current);
-    end.setHours(17, 0, 0, 0);
-
-    events.push({
-      uid: `pre_existing_evt_${i}_${start.getTime()}`,
-      summary: sampleTitles[titleIdx % sampleTitles.length],
-      start,
-      end,
+  return [
+    {
+      uid: 'evt_past_wed_academic',
+      summary: 'Academic Department Faculty Meeting (Completed)',
+      start: pastWedStart,
+      end: pastWedEnd,
       calendarName: 'Personal',
-      location: 'MultiCare Neuroscience Institute'
-    });
-
-    titleIdx++;
-  }
-
-  return events;
+      location: 'Faculty Boardroom'
+    },
+    {
+      uid: 'evt_upcoming_wed_1',
+      summary: 'Outpatient Neurotrauma Consultation Clinic Block',
+      start: nextWed1Start,
+      end: nextWed1End,
+      calendarName: 'Personal',
+      location: 'Suite 400 - Medical Tower'
+    },
+    {
+      uid: 'evt_upcoming_wed_2',
+      summary: 'Protected Academic Research & Operative Planning Window',
+      start: nextWed2Start,
+      end: nextWed2End,
+      calendarName: 'Personal',
+      location: 'Research Office'
+    }
+  ];
 }
