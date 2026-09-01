@@ -1,7 +1,7 @@
 name: VigilOR
 options:
   bundleIdPrefix: com.AlexMohit
-  xcodeVersion: "16.0"
+  xcodeVersion: "26.0"
   deploymentTarget:
     iOS: "17.0"
 settings:
