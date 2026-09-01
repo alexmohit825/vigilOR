@@ -79,21 +79,29 @@ jobs:
             ios/VigilOR/Services/MailManager.swift \
             -o build/Payload/VigilOR.app/VigilOR
           
-          # Compile Asset Catalog for device (iphoneos)
+          # Compile Asset Catalog for device into Assets.car
           xcrun actool \
-            ios/VigilOR/Assets.xcassets \
             --compile build/Payload/VigilOR.app \
             --platform iphoneos \
+            --target-device iphone \
             --minimum-deployment-target 17.0 \
             --app-icon AppIcon \
-            --output-partial-info-plist build/assetcatalog_info.plist || true
+            --output-partial-info-plist build/partial_info.plist \
+            ios/VigilOR/Assets.xcassets || true
           
-          # Copy AppIcon images directly into bundle root
-          cp ios/VigilOR/Assets.xcassets/AppIcon.appiconset/*.png build/Payload/VigilOR.app/ 2>/dev/null || true
-          
-          # Update Info.plist with dynamic build number
-          sed -i '' "s/<string>1<\/string>/<string>${BUILD_NUM}<\/string>/g" ios/VigilOR/Info.plist
+          # Merge actool generated info into Info.plist
           cp ios/VigilOR/Info.plist build/Payload/VigilOR.app/Info.plist
+          if [ -f build/partial_info.plist ]; then
+            /usr/libexec/PlistBuddy -c "Merge build/partial_info.plist" build/Payload/VigilOR.app/Info.plist 2>/dev/null || true
+          fi
+          
+          # Explicit Plist metadata for Xcode 16 & iOS 18
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUM}" build/Payload/VigilOR.app/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string ${BUILD_NUM}" build/Payload/VigilOR.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :DTSDKName iphoneos18.0" build/Payload/VigilOR.app/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :DTSDKName string iphoneos18.0" build/Payload/VigilOR.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :DTPlatformVersion 18.0" build/Payload/VigilOR.app/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :DTPlatformVersion string 18.0" build/Payload/VigilOR.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :DTXcode 1600" build/Payload/VigilOR.app/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :DTXcode string 1600" build/Payload/VigilOR.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :DTXcodeBuild 16A242d" build/Payload/VigilOR.app/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :DTXcodeBuild string 16A242d" build/Payload/VigilOR.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 17.0" build/Payload/VigilOR.app/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string 17.0" build/Payload/VigilOR.app/Info.plist
           
           # Embed official Apple Distribution Provisioning Profile
           cp ios/embedded.mobileprovision build/Payload/VigilOR.app/embedded.mobileprovision
