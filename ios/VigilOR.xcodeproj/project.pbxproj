@@ -11,7 +11,9 @@
 		9B010002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F010002 /* ContentView.swift */; };
 		9B010003 /* CalendarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F010003 /* CalendarManager.swift */; };
 		9B010004 /* MailManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F010004 /* MailManager.swift */; };
-		9B010005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9F010006 /* Assets.xcassets */; };
+		9B010005 /* AppIcon60x60@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9F010006 /* AppIcon60x60@2x.png */; };
+		9B010006 /* AppIcon60x60@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9F010007 /* AppIcon60x60@3x.png */; };
+		9B010007 /* AppIcon1024.png in Resources */ = {isa = PBXBuildFile; fileRef = 9F010008 /* AppIcon1024.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,7 +23,9 @@
 		9F010003 /* CalendarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarManager.swift; sourceTree = "<group>"; };
 		9F010004 /* MailManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailManager.swift; sourceTree = "<group>"; };
 		9F010005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		9F010006 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9F010006 /* AppIcon60x60@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/AppIcon60x60@2x.png"; sourceTree = "<group>"; };
+		9F010007 /* AppIcon60x60@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/AppIcon60x60@3x.png"; sourceTree = "<group>"; };
+		9F010008 /* AppIcon1024.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/AppIcon1024.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,7 +53,9 @@
 				9F010001 /* VigilORApp.swift */,
 				9F010002 /* ContentView.swift */,
 				9F030003 /* Services */,
-				9F010006 /* Assets.xcassets */,
+				9F010006 /* AppIcon60x60@2x.png */,
+				9F010007 /* AppIcon60x60@3x.png */,
+				9F010008 /* AppIcon1024.png */,
 				9F010005 /* Info.plist */,
 			);
 			path = VigilOR;
@@ -132,7 +138,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9B010005 /* Assets.xcassets in Resources */,
+				9B010005 /* AppIcon60x60@2x.png in Resources */,
+				9B010006 /* AppIcon60x60@3x.png in Resources */,
+				9B010007 /* AppIcon1024.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -212,7 +220,6 @@
 		9B0B0001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 523MJL63MC;
@@ -238,7 +245,6 @@
 		9B0B0002 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 523MJL63MC;
