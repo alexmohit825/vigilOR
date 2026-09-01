@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>method</key>
-    <string>app-store</string>
+    <string>app-store-connect</string>
     <key>teamID</key>
     <string>523MJL63MC</string>
     <key>destination</key>
@@ -15,6 +15,6 @@
     <key>uploadSymbols</key>
     <true/>
     <key>manageAppVersionAndBuildNumber</key>
-    <false/>
+    <true/>
 </dict>
 </plist>
