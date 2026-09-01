@@ -5,7 +5,7 @@ on:
     branches:
       - main
     tags:
-      - 'v*'
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       version:
@@ -19,91 +19,77 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    name: 📲 Build Native Swift App & Deliver to TestFlight
+    name: 🍏 Compile, Archive & Deliver to TestFlight
     runs-on: macos-15
+    timeout-minutes: 45
 
     steps:
-      - name: 📥 Check out repository code
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 🛠️ Select Xcode 16 / iOS 18 SDK
+      - name: 🛠️ Select Xcode 16 SDK
         run: |
           sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
           xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-path
+          swift --version
 
-      - name: 🔑 Configure App Store Connect API Key & Code Signing Keychain
+      - name: ⚙️ Install XcodeGen
+        run: brew install xcodegen
+
+      - name: 🏗️ Generate Native Xcode Project
+        run: xcodegen generate
+
+      - name: 🔑 Configure App Store Connect API Credentials
         env:
-          APP_STORE_CONNECT_KEY_ID: '38F6WA87DU'
-          APP_STORE_CONNECT_ISSUER_ID: '73c7355a-beef-4d79-919d-c3d7dec7747a'
-          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-          APPLE_DISTRIBUTION_P12: ${{ secrets.APPLE_DISTRIBUTION_P12 }}
-          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          ASC_KEY_ID: "38F6WA87DU"
+          ASC_ISSUER_ID: "73c7355a-beef-4d79-919d-c3d7dec7747a"
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
-          # 1. Setup ASC API Key
           mkdir -p ~/.appstoreconnect/private_keys
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
-          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
-          
-          # 2. Setup Distribution Certificate Keychain
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          KEYCHAIN_PASSWORD=temporal_pass
-          
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          
-          echo "$APPLE_DISTRIBUTION_P12" | base64 --decode > $RUNNER_TEMP/certificate.p12
-          security import $RUNNER_TEMP/certificate.p12 -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          
-          echo "✅ Apple Distribution Certificate & API Key configured in secure runner keychain."
+          printf "%s\n" "$ASC_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_38F6WA87DU.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_38F6WA87DU.p8
+          echo "✓ App Store Connect API Key installed safely."
 
-      - name: 📦 Build and Archive Native iOS App with Xcode 16
+      - name: 🧪 Validate Apple API Key Connection
+        env:
+          ASC_KEY_ID: "38F6WA87DU"
+          ASC_ISSUER_ID: "73c7355a-beef-4d79-919d-c3d7dec7747a"
         run: |
-          cd ios
+          echo "Testing connection to Apple App Store Connect servers..."
+          xcrun altool --list-apps \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID"
+
+      - name: 🚀 Archive Release Candidate for TestFlight
+        run: |
+          mkdir -p build
+          echo "Archiving VigilOR target for generic iOS device (Build #${{ github.run_number }})..."
           xcodebuild archive \
             -project VigilOR.xcodeproj \
             -scheme VigilOR \
             -configuration Release \
-            -sdk iphoneos \
-            -destination "generic/platform=iOS" \
             -archivePath build/VigilOR.xcarchive \
-            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            -destination 'generic/platform=iOS' \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            MARKETING_VERSION="1.0.0" \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGNING_REQUIRED=NO
 
-      - name: 📱 Export IPA with Automatic Apple Provisioning
+      - name: 📤 Export & Deliver to TestFlight via Apple Direct Upload
+        env:
+          ASC_KEY_ID: "38F6WA87DU"
+          ASC_ISSUER_ID: "73c7355a-beef-4d79-919d-c3d7dec7747a"
         run: |
-          cd ios
+          mkdir -p build/output
+          echo "Uploading archive directly to App Store Connect via native xcodebuild distribution..."
           xcodebuild -exportArchive \
             -archivePath build/VigilOR.xcarchive \
             -exportOptionsPlist ExportOptions.plist \
-            -exportPath build/Export \
+            -exportPath build/output \
             -allowProvisioningUpdates \
             -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_38F6WA87DU.p8 \
-            -authenticationKeyID 38F6WA87DU \
-            -authenticationKeyIssuerID 73c7355a-beef-4d79-919d-c3d7dec7747a
-
-      - name: 🚀 Validate & Deliver to TestFlight via Apple API
-        env:
-          KEY_ID: '38F6WA87DU'
-          ISSUER_ID: '73c7355a-beef-4d79-919d-c3d7dec7747a'
-        run: |
-          IPA_PATH=$(find ios/build/Export -name "*.ipa" | head -n 1)
-          if [ -z "$IPA_PATH" ]; then
-            echo "Error: IPA file was not generated."
-            exit 1
-          fi
-          echo "Found IPA at: $IPA_PATH"
-          echo "Transmitting VigilOR build to App Store Connect TestFlight..."
-          xcrun altool --upload-app \
-            -f "$IPA_PATH" \
-            -t ios \
-            --apiKey "$KEY_ID" \
-            --apiIssuer "$ISSUER_ID"
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
           
           echo "=========================================================="
           echo "🎉 VigilOR Build #${{ github.run_number }} Successfully Delivered to Apple TestFlight!"
