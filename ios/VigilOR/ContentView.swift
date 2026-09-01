@@ -1,12 +1,14 @@
 import SwiftUI
 import MessageUI
+import UIKit
 
 struct ContentView: View {
     @EnvironmentObject var calendarManager: CalendarManager
     @State private var filterSelection: Int = 0 // 0: Upcoming, 1: All, 2: Past
-    @State private var selectedConflictForMail: ORConflictItem? = nil
-    @State private var isShowingMailCompose: Bool = false
-    @State private var showSettingsSheet: Bool = false
+    @State private var selectedConflictForAction: ORConflictItem? = nil
+    @State private var isShowingActionSheet: Bool = false
+    @State private var isShowingInAppMail: Bool = false
+    @State private var toastMessage: String? = nil
     
     var filteredConflicts: [ORConflictItem] {
         switch filterSelection {
@@ -114,12 +116,8 @@ struct ContentView: View {
                             LazyVStack(spacing: 12) {
                                 ForEach(filteredConflicts) { item in
                                     ConflictCardView(item: item) {
-                                        selectedConflictForMail = item
-                                        if MFMailComposeViewController.canSendMail() {
-                                            isShowingMailCompose = true
-                                        } else {
-                                            openMailtoFallback(item: item)
-                                        }
+                                        selectedConflictForAction = item
+                                        isShowingActionSheet = true
                                     }
                                 }
                             }
@@ -128,24 +126,73 @@ struct ContentView: View {
                         }
                     }
                 }
+                
+                // Floating Toast
+                if let message = toastMessage {
+                    VStack {
+                        Spacer()
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text(message)
+                                .font(.footnote.bold())
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color(red: 0.12, green: 0.18, blue: 0.28))
+                        .cornerRadius(20)
+                        .shadow(radius: 8)
+                        .padding(.bottom, 30)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                    .animation(.spring(), value: toastMessage)
+                }
             }
             .navigationTitle("🛡️ VigilOR Sentinel")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $isShowingMailCompose) {
-                if let conflict = selectedConflictForMail {
-                    MailComposeView(conflict: conflict)
+            .confirmationDialog(
+                "Send Protected Block Notice",
+                isPresented: $isShowingActionSheet,
+                titleVisibility: .visible
+            ) {
+                if let conflict = selectedConflictForAction {
+                    Button("📧 Open in Apple Mail / Outlook (Recommended)") {
+                        MailManager.shared.openMailApp(conflict: conflict)
+                    }
+                    
+                    if MFMailComposeViewController.canSendMail() {
+                        Button("✉️ Compose In-App") {
+                            isShowingInAppMail = true
+                        }
+                    }
+                    
+                    Button("📋 Copy Notice Text to Clipboard") {
+                        MailManager.shared.copyNoticeToClipboard(conflict: conflict)
+                        showToast("Notice copied to clipboard!")
+                    }
+                    
+                    Button("Cancel", role: .cancel) {}
+                }
+            } message: {
+                if let conflict = selectedConflictForAction {
+                    Text("Recipients: Emily Maluyo & Richona Hill\nBlock: \(conflict.formattedDate) (\(conflict.formattedTimeRange))")
+                }
+            }
+            .sheet(isPresented: $isShowingInAppMail) {
+                if let conflict = selectedConflictForAction {
+                    MailComposeView(conflict: conflict, isShowing: $isShowingInAppMail)
                 }
             }
         }
     }
     
-    private func openMailtoFallback(item: ORConflictItem) {
-        let to = "EmilyJenie.Maluyo@Multicare.org,Richona.Hill@Multicare.org"
-        let subject = "[OR Block Notice] A. Alex Mohit, MD, PhD, FAANS - Protected Window (\(item.formattedDate))"
-        let body = "Please hold OR schedule clear for Wednesday \(item.formattedDate) (\(item.formattedTimeRange)). Do NOT book surgery cases."
-        let urlStr = "mailto:\(to)?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
-        if let url = URL(string: urlStr) {
-            UIApplication.shared.open(url)
+    private func showToast(_ text: String) {
+        toastMessage = text
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            if toastMessage == text {
+                toastMessage = nil
+            }
         }
     }
 }
@@ -211,9 +258,31 @@ struct ConflictCardView: View {
 
 struct MailComposeView: UIViewControllerRepresentable {
     let conflict: ORConflictItem
+    @Binding var isShowing: Bool
+    
+    class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
+        var parent: MailComposeView
+        
+        init(parent: MailComposeView) {
+            self.parent = parent
+        }
+        
+        func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
+            parent.isShowing = false
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
     
     func makeUIViewController(context: Context) -> MFMailComposeViewController {
-        MailManager.shared.createMailComposeViewController(conflict: conflict) ?? MFMailComposeViewController()
+        let vc = MFMailComposeViewController()
+        vc.mailComposeDelegate = context.coordinator
+        vc.setToRecipients(MailManager.shared.defaultRecipients)
+        vc.setSubject(MailManager.shared.generateSubject(conflict: conflict))
+        vc.setMessageBody(MailManager.shared.generateBody(conflict: conflict), isHTML: false)
+        return vc
     }
     
     func updateUIViewController(_ uiViewController: MFMailComposeViewController, context: Context) {}

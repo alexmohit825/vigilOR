@@ -1,36 +1,31 @@
 import Foundation
 import MessageUI
 import SwiftUI
+import UIKit
 
-public class MailManager: NSObject, ObservableObject, MFMailComposeViewControllerDelegate {
+public class MailManager: NSObject, ObservableObject {
     public static let shared = MailManager()
     
     @Published public var mailResult: Result<MFMailComposeResult, Error>? = nil
     
-    public func createMailComposeViewController(
-        conflict: ORConflictItem,
-        schedulers: [String] = ["EmilyJenie.Maluyo@Multicare.org", "Richona.Hill@Multicare.org"]
-    ) -> MFMailComposeViewController? {
-        guard MFMailComposeViewController.canSendMail() else {
-            return nil
-        }
-        
-        let vc = MFMailComposeViewController()
-        vc.mailComposeDelegate = self
-        vc.setToRecipients(schedulers)
-        
-        let subject = "[OR Block Notice] A. Alex Mohit, MD, PhD, FAANS - Protected Window (\(conflict.formattedDate) \(conflict.formattedTimeRange))"
-        vc.setSubject(subject)
-        
-        let body = 
-"""
+    public let defaultRecipients = [
+        "EmilyJenie.Maluyo@Multicare.org",
+        "Richona.Hill@Multicare.org"
+    ]
+    
+    public func generateSubject(conflict: ORConflictItem) -> String {
+        return "[OR Block Notice] A. Alex Mohit, MD, PhD, FAANS - Protected Window (\(conflict.formattedDate))"
+    }
+    
+    public func generateBody(conflict: ORConflictItem) -> String {
+        return """
 =============================================================
 VIGILOR CLINICAL SCHEDULE SENTINEL - OR AVAILABILITY NOTICE
 =============================================================
 
 Surgeon: A. Alex Mohit, MD, PhD, FAANS (Neurological Surgery)
 Facility: MultiCare Neuroscience Institute
-Recipients: \(schedulers.joined(separator: ", "))
+Recipients: \(defaultRecipients.joined(separator: ", "))
 
 PROTECTED SCHEDULE BLOCK DETAILS:
 -------------------------------------------------------------
@@ -44,17 +39,27 @@ https://alexmohit825.github.io/vigilor/?ack=\(conflict.id)&status=confirmed
 Office Contact: mohalex@gmail.com
 Sent via VigilOR Autonomous Surgical Schedule Sentinel.
 """
-        
-        vc.setMessageBody(body, isHTML: false)
-        return vc
     }
     
-    public func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
-        if let error = error {
-            mailResult = .failure(error)
-        } else {
-            mailResult = .success(result)
+    public func openMailApp(conflict: ORConflictItem) {
+        let to = defaultRecipients.joined(separator: ",")
+        let subject = generateSubject(conflict: conflict)
+        let body = generateBody(conflict: conflict)
+        
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = to
+        components.queryItems = [
+            URLQueryItem(name: "subject", value: subject),
+            URLQueryItem(name: "body", value: body)
+        ]
+        
+        if let url = components.url {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
         }
-        controller.dismiss(animated: true)
+    }
+    
+    public func copyNoticeToClipboard(conflict: ORConflictItem) {
+        UIPasteboard.general.string = generateBody(conflict: conflict)
     }
 }

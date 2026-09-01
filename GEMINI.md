@@ -49,3 +49,14 @@ When Dr. Mohit asks to publish or submit an app to the App Store:
 - **Mandatory Proof Blocks:** Every resolution, fix, or delivery claim MUST include an objective verification table showing the actual execution command, the exact raw output log, the HTTP status code, and the live verified URL.
 - **Explicit Mock/Simulation Disclosure:** If any part of a feature relies on placeholder data, simulated responses, or missing external API keys, it MUST be declared in bold upfront as `[MOCK / SIMULATION - NOT LIVE]` before any details are shown. Never present simulated workflows as real or complete.
 - **Auditable Test Step:** Always provide a concrete verification test (e.g. sending a real test payload to `mohalex@gmail.com` with delivery proof) that Dr. Mohit can verify externally in his own inbox or browser.
+
+## 9. Pre-Flight Feasibility & Prognostication Standard (Viability Score)
+Before writing any code, creating implementation plans, or starting architectural work on ANY new project or feature concept:
+- **Mandatory Pre-Flight Prognostic Score (0% – 100%):** The assistant must deliver a structured 1-page **Pre-Flight Feasibility & Prognostic Matrix** assessing:
+  1. **Achievability Score (%):**
+     - **High (>85%):** Native device APIs, deterministic math/logic, standard public APIs, zero store gatekeepers.
+     - **Medium (50% – 85%):** Requires external paid API keys, third-party authentication, or manual touchpoints.
+     - **Low (<50%):** High failure risk due to mobile OS sandboxing (silent background actions), anti-scraping walls, closed hardware, or store policy barriers (e.g. Google Play 20-tester rules).
+  2. **Platform & Sandboxing Barriers:** Explicitly stating every OS, store, or network limitation upfront (e.g. iOS background restrictions, Apple Mail compose requirements, Google Play tester minimums, hospital PACS firewalls).
+  3. **Autonomous vs. Manual Reality:** Defining what can truly occur silently vs. what requires user taps.
+  4. **Direct Recommendation:** Explicitly advise **PROCEED**, **SIMPLIFY / PIVOT**, or **ABANDON (NOT WORTH THE TIME)** before Dr. Mohit invests a single minute of development time.
