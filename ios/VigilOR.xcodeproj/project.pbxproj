@@ -11,6 +11,7 @@
 		9B010002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F010002 /* ContentView.swift */; };
 		9B010003 /* CalendarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F010003 /* CalendarManager.swift */; };
 		9B010004 /* MailManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F010004 /* MailManager.swift */; };
+		9B010005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9F010006 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +21,7 @@
 		9F010003 /* CalendarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarManager.swift; sourceTree = "<group>"; };
 		9F010004 /* MailManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailManager.swift; sourceTree = "<group>"; };
 		9F010005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		9F010006 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,6 +49,7 @@
 				9F010001 /* VigilORApp.swift */,
 				9F010002 /* ContentView.swift */,
 				9F030003 /* Services */,
+				9F010006 /* Assets.xcassets */,
 				9F010005 /* Info.plist */,
 			);
 			path = VigilOR;
@@ -129,6 +132,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9B010005 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

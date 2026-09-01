@@ -13,21 +13,32 @@
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>VigilOR</string>
+    <string>$(PRODUCT_NAME)</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
     <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UIRequiresFullScreen</key>
     <true/>
     <key>NSCalendarsUsageDescription</key>
     <string>VigilOR requires calendar access to identify protected Wednesday afternoon blocks and alert surgical coordinators.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
     <string>VigilOR requires full calendar access to monitor protected OR schedule blocks and alert MultiCare coordinators.</string>
-    <key>ITSAppUsesNonExemptEncryption</key>
-    <false/>
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+    </dict>
     <key>UIRequiredDeviceCapabilities</key>
     <array>
         <string>arm64</string>
