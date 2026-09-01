@@ -51,12 +51,9 @@ jobs:
             -configuration Release \
             -sdk iphoneos \
             -archivePath build/VigilOR.xcarchive \
-            CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM=523MJL63MC \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_38F6WA87DU.p8 \
-            -authenticationKeyID 38F6WA87DU \
-            -authenticationKeyIssuerID 73c7355a-beef-4d79-919d-c3d7dec7747a
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
 
       - name: 📱 Export IPA with Automatic Apple Provisioning
         run: |
